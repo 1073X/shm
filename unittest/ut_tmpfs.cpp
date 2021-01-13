@@ -2,4 +2,10 @@
 
 #include "shm/tmpfs.hpp"
 
-TEST(ut_tmpfs, join) { EXPECT_EQ("/dev/shm/xyz.1.abc", miu::shm::tmpfs::join("xyz", 1, "abc")); }
+using miu::shm::tmpfs;
+
+TEST(ut_tmpfs, join) {
+    EXPECT_EQ("/dev/shm/xyz.1.abc", tmpfs::join("xyz", 1, "abc"));
+    EXPECT_ANY_THROW(tmpfs::join());
+    EXPECT_ANY_THROW(tmpfs::join(""));
+}

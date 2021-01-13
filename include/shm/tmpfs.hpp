@@ -1,5 +1,6 @@
 #pragma once
 
+#include <com/fatal_error.hpp>
 #include <com/strcat.hpp>
 #include <filesystem>
 
@@ -11,7 +12,11 @@ class tmpfs {
 
     template<typename... ARGS>
     static auto join(ARGS&&... args) {
-        return root() / com::strcat { std::forward<ARGS>(args)... }.str();
+        auto filename = com::strcat { std::forward<ARGS>(args)... }.str();
+        if (filename.empty()) {
+            FATAL_ERROR("empty shmem file name");
+        }
+        return root() / filename;
     }
 };
 
