@@ -18,6 +18,16 @@ class tmpfs {
         }
         return root() / filename;
     }
+
+    template<typename... ARGS>
+    static auto exists(ARGS&&... args) {
+        return std::filesystem::exists(join(std::forward<ARGS>(args)...));
+    }
+
+    template<typename... ARGS>
+    static auto remove(ARGS&&... args) {
+        return std::filesystem::remove(join(std::forward<ARGS>(args)...));
+    }
 };
 
 }    // namespace miu::shm
