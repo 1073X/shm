@@ -6,7 +6,7 @@
 
 namespace miu::shm {
 
-class tmpfs {
+class tempfs {
   public:
     static std::filesystem::path root();
 
@@ -17,6 +17,11 @@ class tmpfs {
             FATAL_ERROR("empty shmem file name");
         }
         return root() / filename;
+    }
+
+    template<typename... ARGS>
+    static auto file_size(ARGS&&... args) {
+        return std::filesystem::file_size(join(std::forward<ARGS>(args)...));
     }
 
     template<typename... ARGS>

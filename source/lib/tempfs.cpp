@@ -1,10 +1,10 @@
 
-#include "shm/tmpfs.hpp"
+#include "shm/tempfs.hpp"
 
 namespace miu::shm {
 
 std::filesystem::path
-tmpfs::root() {
+tempfs::root() {
     return "/dev/shm";
 }
 
