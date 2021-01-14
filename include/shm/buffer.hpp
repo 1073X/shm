@@ -10,6 +10,8 @@ class buffer {
     buffer() = default;
     buffer(std::string_view) noexcept;                   // open
     buffer(std::string_view, uint32_t size) noexcept;    // create
+    buffer(buffer const&) = delete;
+    auto operator=(buffer const&) = delete;
     ~buffer();
 
     auto operator!() const { return !_addr; }

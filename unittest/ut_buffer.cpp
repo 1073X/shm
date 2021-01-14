@@ -34,6 +34,15 @@ TEST_F(ut_buffer, create) {
     tempfs::remove("ut_buffer.create");
 }
 
+TEST_F(ut_buffer, extend) {
+    { miu::shm::buffer { "ut_buffer.extend", 4096 }; }
+
+    miu::shm::buffer buf { "ut_buffer.extend", 8192 };
+    EXPECT_EQ(8192U, buf.size());
+
+    tempfs::remove("ut_buffer.extend");
+}
+
 TEST_F(ut_buffer, open) {
     { miu::shm::buffer { "ut_buffer.open", 4096 }; }
 
@@ -42,4 +51,10 @@ TEST_F(ut_buffer, open) {
     EXPECT_EQ(4096U, buf.size());
 
     tempfs::remove("ut_buffer.open");
+}
+
+TEST_F(ut_buffer, open_failed) {
+    miu::shm::buffer buf { "ut_buffer.open_failed" };
+    EXPECT_FALSE(buf);
+    tempfs::remove("ut_buffer.open_failed");
 }

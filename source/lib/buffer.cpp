@@ -14,8 +14,13 @@ namespace miu::shm {
 
 static std::pair<uint32_t, char*>
 alloc(std::string_view name, uint32_t size) {
+    auto flag = O_RDWR;
+    if (size > 0) {
+        flag |= O_CREAT;
+    }
+
     // 1. open file
-    auto fd = shm_open(name.data(), O_RDWR | O_CREAT, 0);
+    auto fd = shm_open(name.data(), flag, 0);
     if (fd <= 0) {
         const char* err_str = strerror(errno);
         log::error(name, +"shm_open", errno, err_str);
