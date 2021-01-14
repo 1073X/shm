@@ -19,6 +19,7 @@ class buffer {
 
     auto size() const { return _size; }
     auto addr() const { return _addr; }
+    auto addr() { return _addr; }
 
   private:
     uint32_t _size { 0 };

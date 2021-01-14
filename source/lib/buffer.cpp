@@ -12,6 +12,8 @@
 
 namespace miu::shm {
 
+static uint32_t const PAGE_SIZE = getpagesize();
+
 static std::pair<uint32_t, char*>
 alloc(std::string_view name, uint32_t size) {
     auto flag = O_RDWR;
@@ -45,6 +47,11 @@ alloc(std::string_view name, uint32_t size) {
         }
     } else {
         size = st.st_size;
+        if (size < PAGE_SIZE) {
+            log::error(name, +"size is less than ", PAGE_SIZE);
+            ::close(fd);
+            return std::make_pair(0, nullptr);
+        }
     }
 
     // 3. chmod 660 (since the default permission mode is 640)
@@ -67,7 +74,7 @@ alloc(std::string_view name, uint32_t size) {
 buffer::buffer(std::string_view name) noexcept { std::tie(_size, _addr) = alloc(name, 0); }
 
 buffer::buffer(std::string_view name, uint32_t size) noexcept {
-    std::tie(_size, _addr) = alloc(name, ((size + 4095) >> 12) << 12);
+    std::tie(_size, _addr) = alloc(name, ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE);
 }
 
 buffer::~buffer() {
