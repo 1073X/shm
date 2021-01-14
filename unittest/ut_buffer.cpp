@@ -19,14 +19,27 @@ TEST_F(ut_buffer, default) {
 }
 
 TEST_F(ut_buffer, create) {
-    miu::shm::buffer buf { "ut_buffer", 4096 };
+    miu::shm::buffer buf { "ut_buffer.create", 4095 };
     EXPECT_EQ(4096U, buf.size());
 
     EXPECT_TRUE(buf);
-    EXPECT_TRUE(tempfs::exists("ut_buffer"));
+    EXPECT_TRUE(tempfs::exists("ut_buffer.create"));
+    EXPECT_EQ(buf.size(), tempfs::file_size("ut_buffer.create"));
 
     auto exp = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read
                | fs::perms::group_write;
-    auto status = fs::status(tempfs::join("ut_buffer"));
+    auto status = fs::status(tempfs::join("ut_buffer.create"));
     EXPECT_EQ(exp, status.permissions());
+
+    tempfs::remove("ut_buffer.create");
+}
+
+TEST_F(ut_buffer, open) {
+    { miu::shm::buffer { "ut_buffer.open", 4096 }; }
+
+    miu::shm::buffer buf { "ut_buffer.open" };
+    EXPECT_TRUE(buf);
+    EXPECT_EQ(4096U, buf.size());
+
+    tempfs::remove("ut_buffer.open");
 }

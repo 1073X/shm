@@ -20,6 +20,11 @@ class tempfs {
     }
 
     template<typename... ARGS>
+    static auto file_size(ARGS&&... args) {
+        return std::filesystem::file_size(join(std::forward<ARGS>(args)...));
+    }
+
+    template<typename... ARGS>
     static auto exists(ARGS&&... args) {
         return std::filesystem::exists(join(std::forward<ARGS>(args)...));
     }
