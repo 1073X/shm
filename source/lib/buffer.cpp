@@ -10,9 +10,12 @@
 #include <com/fatal_error.hpp>
 #include <log/log.hpp>
 
+#include "roster.hpp"
+
 namespace miu::shm {
 
 static uint32_t const PAGE_SIZE = getpagesize();
+static roster g_roster;
 
 static std::pair<uint32_t, char*>
 alloc(std::string_view name, uint32_t size) {
@@ -71,10 +74,23 @@ alloc(std::string_view name, uint32_t size) {
     return std::make_pair(size, addr);
 }
 
-buffer::buffer(std::string_view name) noexcept { std::tie(_size, _addr) = alloc(name, 0); }
+buffer::buffer(std::string_view name) noexcept
+    : _name(name) {
+    if (g_roster.try_insert(name)) {
+        std::tie(_size, _addr) = alloc(name, 0);
+    } else {
+        log::error(+"open duplicated shm::buffer", name);
+    }
+}
 
-buffer::buffer(std::string_view name, uint32_t size) noexcept {
-    std::tie(_size, _addr) = alloc(name, ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE);
+buffer::buffer(std::string_view name, uint32_t size) noexcept
+    : _name(name) {
+    if (g_roster.try_insert(name)) {
+        auto aligned = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
+        std::tie(_size, _addr) = alloc(name, aligned);
+    } else {
+        log::error(+"create duplicated shm::buffer", name);
+    }
 }
 
 buffer::~buffer() {
@@ -82,6 +98,7 @@ buffer::~buffer() {
         msync(_addr, _size, MS_SYNC | MS_INVALIDATE);
         munmap(_addr, _size);
     }
+    g_roster.erase(_name);    // earse anyway
 }
 
 }    // namespace miu::shm

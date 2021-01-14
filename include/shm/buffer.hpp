@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <string_view>
+#include <string>
 
 namespace miu::shm {
 
@@ -22,6 +22,7 @@ class buffer {
     auto addr() { return _addr; }
 
   private:
+    std::string _name;
     uint32_t _size { 0 };
     char* _addr { nullptr };
 };
