@@ -69,3 +69,16 @@ TEST_F(ut_buffer, open_0) {
     miu::shm::buffer buf { "ut_buffer" };
     EXPECT_FALSE(buf);
 }
+
+TEST_F(ut_buffer, duplicated) {
+    {    // create -> open
+        miu::shm::buffer buf { "ut_buffer", 4096 };
+        EXPECT_TRUE(buf);
+        EXPECT_FALSE(miu::shm::buffer("ut_buffer"));
+    }
+    {    // open -> create
+        miu::shm::buffer buf { "ut_buffer" };
+        EXPECT_TRUE(buf);
+        EXPECT_FALSE(miu::shm::buffer("ut_buffer", 4096));
+    }
+}
