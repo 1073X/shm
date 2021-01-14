@@ -3,10 +3,10 @@
 #include <filesystem>
 
 #include "shm/buffer.hpp"
-#include "shm/tmpfs.hpp"
+#include "shm/tempfs.hpp"
 
 namespace fs = std::filesystem;
-using miu::shm::tmpfs;
+using miu::shm::tempfs;
 
 struct ut_buffer : public testing::Test {};
 
@@ -23,10 +23,10 @@ TEST_F(ut_buffer, create) {
     EXPECT_EQ(4096U, buf.size());
 
     EXPECT_TRUE(buf);
-    EXPECT_TRUE(tmpfs::exists("ut_buffer"));
+    EXPECT_TRUE(tempfs::exists("ut_buffer"));
 
     auto exp = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read
                | fs::perms::group_write;
-    auto status = fs::status(tmpfs::join("ut_buffer"));
+    auto status = fs::status(tempfs::join("ut_buffer"));
     EXPECT_EQ(exp, status.permissions());
 }

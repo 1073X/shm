@@ -6,7 +6,7 @@
 
 namespace miu::shm {
 
-class tmpfs {
+class tempfs {
   public:
     static std::filesystem::path root();
 
