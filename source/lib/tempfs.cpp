@@ -3,9 +3,6 @@
 
 namespace miu::shm {
 
-std::filesystem::path
-tempfs::root() {
-    return "/dev/shm";
-}
+com::directory tempfs { "/dev/shm" };    // NOLINT
 
 }    // namespace miu::shm
