@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-MIN_COV="90%"
+MIN_COV="89%"
 PROJECT_NAME=shm
 BUILD_VERBOSE=OFF
 source $TOOLCHAIN_PATH/build.in
