@@ -16,8 +16,7 @@ namespace miu::shm {
 
 static uint32_t const PAGE_SIZE = getpagesize();
 
-static std::pair<uint32_t, char*>
-alloc(std::string_view name, uint32_t size) {
+static std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
     auto flag = O_RDWR;
     if (size > 0) {
         flag |= O_CREAT;
@@ -78,17 +77,17 @@ buffer::buffer(std::string_view name) noexcept
     if (roster::instance()->try_insert(name)) {
         std::tie(_size, _addr) = alloc(name, 0);
     } else {
-        log::error(+"open duplicated shm::buffer", name);
+        log::error(name, +"open duplicated shm::buffer");
     }
 }
 
 buffer::buffer(std::string_view name, uint32_t size) noexcept
     : _name(name) {
     if (roster::instance()->try_insert(name)) {
-        auto aligned = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
+        auto aligned           = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
         std::tie(_size, _addr) = alloc(name, aligned);
     } else {
-        log::error(+"create duplicated shm::buffer", name);
+        log::error(name, +"create duplicated shm::buffer");
     }
 }
 

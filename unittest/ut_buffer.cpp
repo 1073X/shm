@@ -30,7 +30,7 @@ TEST_F(ut_buffer, create) {
     EXPECT_EQ(buf.size(), tempfs::file_size("ut_buffer"));
 
     auto exp = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read
-               | fs::perms::group_write;
+             | fs::perms::group_write;
     auto status = fs::status(tempfs::join("ut_buffer"));
     EXPECT_EQ(exp, status.permissions());
 }
