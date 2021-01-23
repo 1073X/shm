@@ -19,15 +19,19 @@ TEST_F(ut_buffer, default) {
     EXPECT_EQ(nullptr, buf.addr());
     EXPECT_FALSE(buf);
     EXPECT_TRUE(!buf);
+
+    EXPECT_STREQ("NULL", buf.name());
 }
 
 TEST_F(ut_buffer, create) {
     miu::shm::buffer buf { "ut_buffer", 4095 };
-    EXPECT_EQ(4096U, buf.size());    // aliged to page size
+    EXPECT_EQ(4096U - CACHE_LINE, buf.size());    // aliged to page size
+    EXPECT_STREQ("ut_buffer", buf.name());
+    EXPECT_EQ(buf.name() + CACHE_LINE, buf.addr());
 
     EXPECT_TRUE(buf);
     EXPECT_TRUE(tempfs::exists("ut_buffer"));
-    EXPECT_EQ(buf.size(), tempfs::file_size("ut_buffer"));
+    EXPECT_EQ(4096U, tempfs::file_size("ut_buffer"));
 
     auto exp = fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read
              | fs::perms::group_write;
@@ -39,7 +43,7 @@ TEST_F(ut_buffer, extend) {
     { miu::shm::buffer { "ut_buffer", 4096 }; }
 
     miu::shm::buffer buf { "ut_buffer", 8192 };
-    EXPECT_EQ(8192U, buf.size());
+    EXPECT_EQ(8192U - CACHE_LINE, buf.size());
 }
 
 TEST_F(ut_buffer, open) {
@@ -47,7 +51,8 @@ TEST_F(ut_buffer, open) {
 
     miu::shm::buffer buf { "ut_buffer" };
     EXPECT_TRUE(buf);
-    EXPECT_EQ(4096U, buf.size());
+    EXPECT_EQ(4096U - CACHE_LINE, buf.size());
+    EXPECT_STREQ("ut_buffer", buf.name());
 }
 
 TEST_F(ut_buffer, open_failed) {

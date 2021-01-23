@@ -7,7 +7,7 @@ namespace miu::shm {
 
 class roster {
   public:
-    static auto instance() { return &_instance; }
+    static auto instance() { return &inst; }
 
     bool try_insert(std::string_view name);
     void erase(std::string_view name);
@@ -17,7 +17,7 @@ class roster {
     std::mutex _mtx;
     std::set<std::string> _names;
 
-    static roster _instance;
+    static roster inst;
 };
 
 }    // namespace miu::shm

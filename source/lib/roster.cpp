@@ -3,7 +3,7 @@
 
 namespace miu::shm {
 
-roster roster::_instance;
+roster roster::inst;
 
 bool roster::try_insert(std::string_view name) {
     std::lock_guard<std::mutex> l { _mtx };

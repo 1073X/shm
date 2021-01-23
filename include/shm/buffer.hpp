@@ -8,8 +8,8 @@ namespace miu::shm {
 class buffer {
   public:
     buffer() = default;
-    buffer(std::string_view) noexcept;                   // open
-    buffer(std::string_view, uint32_t size) noexcept;    // create
+    buffer(std::string_view) noexcept;              // open
+    buffer(std::string_view, uint32_t) noexcept;    // create
     buffer(buffer const&) = delete;
     auto operator=(buffer const&) = delete;
     ~buffer();
@@ -17,13 +17,12 @@ class buffer {
     auto operator!() const { return !_addr; }
     operator bool() const { return !operator!(); }
 
-    auto size() const { return _size; }
-    auto addr() const { return _addr; }
-    auto addr() { return _addr; }
+    const char* name() const;
+    uint32_t size() const;
+    const char* addr() const;
+    char* addr();
 
   private:
-    std::string _name;
-    uint32_t _size { 0 };
     char* _addr { nullptr };
 };
 
