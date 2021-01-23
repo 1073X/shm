@@ -1,30 +1,28 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include <com/strcat.hpp>
 
 namespace miu::shm {
 
+class head;
+
 class buffer {
   public:
-    buffer() = default;
-    buffer(std::string_view) noexcept;                   // open
-    buffer(std::string_view, uint32_t size) noexcept;    // create
-    buffer(buffer const&) = delete;
-    auto operator=(buffer const&) = delete;
+    buffer(com::strcat const& name = "", uint32_t len = 0) noexcept;
+    buffer(buffer&&);
+    buffer& operator=(buffer&&);
     ~buffer();
 
-    auto operator!() const { return !_addr; }
+    bool operator!() const;
     operator bool() const { return !operator!(); }
 
-    auto size() const { return _size; }
-    auto addr() const { return _addr; }
-    auto addr() { return _addr; }
+    const char* name() const;
+    uint32_t size() const;
+    const char* addr() const;
+    char* addr();
 
   private:
-    std::string _name;
-    uint32_t _size { 0 };
-    char* _addr { nullptr };
+    head* _head { nullptr };
 };
 
 }    // namespace miu::shm
