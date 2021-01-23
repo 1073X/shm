@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include <com/strcat.hpp>
 
 namespace miu::shm {
 
@@ -9,10 +8,9 @@ class head;
 
 class buffer {
   public:
-    buffer() = default;
-    buffer(std::string_view, uint32_t = 0) noexcept;
-    buffer(buffer const&) = delete;
-    auto operator=(buffer const&) = delete;
+    buffer(com::strcat const& name = "", uint32_t len = 0) noexcept;
+    buffer(buffer&&);
+    buffer& operator=(buffer&&);
     ~buffer();
 
     bool operator!() const;

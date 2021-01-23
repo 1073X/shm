@@ -9,20 +9,32 @@
 
 namespace miu::shm {
 
-buffer::buffer(std::string_view name, uint32_t len) noexcept {
-    if (roster::instance()->try_insert(name)) {
-        _head = alloc(name, align(len));
+buffer::buffer(com::strcat const& name, uint32_t len) noexcept {
+    if (roster::instance()->try_insert(name.str())) {
+        _head = alloc(name.str(), align(len));
         if (!_head) {
-            roster::instance()->erase(name);
+            roster::instance()->erase(name.str());
         }
     } else {
-        log::error(name, +"create duplicated shm::buffer");
+        log::error(name.str(), +"create duplicated shm::buffer");
     }
 }
 
+buffer::buffer(buffer&& another)
+    : _head(another._head) {
+    another._head = nullptr;
+}
+
+buffer& buffer::operator=(buffer&& another) {
+    std::swap(_head, another._head);
+    return *this;
+}
+
 buffer::~buffer() {
-    roster::instance()->erase(name());    // earse anyway
-    dealloc(_head);
+    if (_head) {
+        roster::instance()->erase(name());    // earse anyway
+        dealloc(_head);
+    }
 }
 
 bool buffer::operator!() const {
@@ -30,24 +42,18 @@ bool buffer::operator!() const {
 }
 
 const char* buffer::name() const {
-    if (_head) {
-        return +_head->name;
-    }
-    return +"NULL";
+    assert(_head != nullptr);
+    return +_head->name;
 }
 
 uint32_t buffer::size() const {
-    if (_head) {
-        return _head->size - sizeof(head);
-    }
-    return 0;
+    assert(_head != nullptr);
+    return _head->size - sizeof(head);
 }
 
 const char* buffer::addr() const {
-    if (_head) {
-        return (const char*)(_head + 1);
-    }
-    return nullptr;
+    assert(_head != nullptr);
+    return (const char*)(_head + 1);
 }
 
 char* buffer::addr() {

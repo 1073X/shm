@@ -15,12 +15,8 @@ struct ut_buffer : public testing::Test {
 
 TEST_F(ut_buffer, default) {
     miu::shm::buffer buf;
-    EXPECT_EQ(0U, buf.size());
-    EXPECT_EQ(nullptr, buf.addr());
     EXPECT_FALSE(buf);
     EXPECT_TRUE(!buf);
-
-    EXPECT_STREQ("NULL", buf.name());
 }
 
 TEST_F(ut_buffer, create) {
@@ -86,4 +82,17 @@ TEST_F(ut_buffer, duplicated) {
         EXPECT_TRUE(buf);
         EXPECT_FALSE(miu::shm::buffer("ut_buffer", 4096));
     }
+}
+
+TEST_F(ut_buffer, move) {
+    miu::shm::buffer buf1 { "ut_buffer", 4096 };
+
+    miu::shm::buffer buf2 { std::move(buf1) };
+    EXPECT_TRUE(buf2);
+    EXPECT_FALSE(buf1);    // NOLINT: testing move
+
+    miu::shm::buffer buf3;
+    buf3 = std::move(buf2);
+    EXPECT_TRUE(buf3);
+    EXPECT_FALSE(buf2);    // NOLINT: testing move
 }
