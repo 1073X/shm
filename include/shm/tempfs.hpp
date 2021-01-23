@@ -31,8 +31,11 @@ class tempfs {
 
     template<typename... ARGS>
     static auto remove(ARGS&&... args) {
-        return std::filesystem::remove(join(std::forward<ARGS>(args)...));
+        return do_remove(join(std::forward<ARGS>(args)...));
     }
+
+  private:
+    static void do_remove(std::filesystem::path);
 };
 
 }    // namespace miu::shm

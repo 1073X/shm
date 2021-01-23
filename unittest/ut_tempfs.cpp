@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "shm/buffer.hpp"
 #include "shm/tempfs.hpp"
 
 using miu::shm::tempfs;
@@ -13,9 +14,12 @@ TEST(ut_tempfs, join) {
 }
 
 TEST(ut_tempfs, exists_and_remove) {
-    EXPECT_FALSE(tempfs::exists("ut_tempfs", 1));
-    std::ofstream { tempfs::join("ut_tempfs", 1) };
-    EXPECT_TRUE(tempfs::exists("ut_tempfs", 1));
-    tempfs::remove("ut_tempfs", 1);
-    EXPECT_FALSE(tempfs::exists("ut_tempfs", 1));
+    {
+        miu::shm::buffer buf { "ut_tempfs", 4096 };
+        EXPECT_ANY_THROW(tempfs::remove("ut_tempfs"));
+    }
+
+    EXPECT_TRUE(tempfs::exists("ut_tempfs"));
+    EXPECT_NO_THROW(tempfs::remove("ut_tempfs"));
+    EXPECT_FALSE(tempfs::exists("ut_tempfs"));
 }
