@@ -1,10 +1,13 @@
 
+#include "alloc.hpp"
+
 #include <fcntl.h>     /* For O_* constants */
 #include <string.h>    // strerror
 #include <sys/mman.h>
 #include <sys/stat.h>  /* For mode constants */
 #include <unistd.h>    // ftruncate
 
+#include <cstring>    // std::strncpy
 #include <log/log.hpp>
 
 namespace miu::shm {
@@ -15,7 +18,9 @@ uint32_t align(uint32_t size) {
     return ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
 }
 
-std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
+head* alloc(std::string_view name, uint32_t size) {
+    size = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
+
     auto flag = O_RDWR;
     if (size > 0) {
         flag |= O_CREAT;
@@ -26,7 +31,7 @@ std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
     if (fd <= 0) {
         const char* err_str = strerror(errno);
         log::error(name, +"shm_open", errno, err_str);
-        return std::make_pair(0, nullptr);
+        return nullptr;
     }
 
     // 2. verify and adjust file size
@@ -35,7 +40,7 @@ std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
         const char* err_str = strerror(errno);
         log::error(name, +"fstat", errno, err_str);
         ::close(fd);
-        return std::make_pair(0, nullptr);
+        return nullptr;
     }
 
     if (st.st_size < size) {
@@ -43,14 +48,14 @@ std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
             const char* err_str = strerror(errno);
             log::error(name, +"ftruncate", errno, err_str);
             ::close(fd);
-            return std::make_pair(0, nullptr);
+            return nullptr;
         }
     } else {
         size = st.st_size;
         if (size < PAGE_SIZE) {
             log::error(name, +"size is less than ", PAGE_SIZE);
             ::close(fd);
-            return std::make_pair(0, nullptr);
+            return nullptr;
         }
     }
 
@@ -62,18 +67,24 @@ std::pair<uint32_t, char*> alloc(std::string_view name, uint32_t size) {
 
     // 4. map the file in memory
     auto addr = (char*)::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (!addr) {
+    if (addr) {
+        auto h = new (addr) head {};
+        std::strncpy(h->name, name.data(), sizeof(h->name));
+        h->size = size;
+    } else {
         const char* err_str = strerror(errno);
         log::error(name, +"mmap", errno, err_str);
     }
 
     ::close(fd);
-    return std::make_pair(size, addr);
+    return (head*)addr;
 }
 
-void dealloc(char* addr, uint32_t size) {
-    msync(addr, size, MS_SYNC | MS_INVALIDATE);
-    munmap(addr, size);
+void dealloc(head* h) {
+    if (h) {
+        msync(h, h->size, MS_SYNC | MS_INVALIDATE);
+        munmap(h, h->size);
+    }
 }
 
 }    // namespace miu::shm

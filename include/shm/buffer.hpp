@@ -5,16 +5,17 @@
 
 namespace miu::shm {
 
+class head;
+
 class buffer {
   public:
     buffer() = default;
-    buffer(std::string_view) noexcept;              // open
-    buffer(std::string_view, uint32_t) noexcept;    // create
+    buffer(std::string_view, uint32_t = 0) noexcept;
     buffer(buffer const&) = delete;
     auto operator=(buffer const&) = delete;
     ~buffer();
 
-    auto operator!() const { return !_addr; }
+    bool operator!() const;
     operator bool() const { return !operator!(); }
 
     const char* name() const;
@@ -23,7 +24,7 @@ class buffer {
     char* addr();
 
   private:
-    char* _addr { nullptr };
+    head* _head { nullptr };
 };
 
 }    // namespace miu::shm
