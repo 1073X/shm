@@ -8,7 +8,7 @@ class head;
 
 class buffer {
   public:
-    buffer(com::strcat const& name = "", uint32_t len = 0) noexcept;
+    buffer(com::strcat const& = "", uint32_t = 0) noexcept;
     buffer(buffer&&);
     buffer& operator=(buffer&&);
     ~buffer();
@@ -21,6 +21,9 @@ class buffer {
     std::string name() const;
     uint32_t size();
     char* addr();
+
+  private:
+    void load(std::string, uint32_t);
 
   private:
     head* _head { nullptr };
