@@ -16,13 +16,15 @@ class buffer {
     bool operator!() const;
     operator bool() const { return !operator!(); }
 
-    const char* name() const;
-    uint32_t size() const;
-    const char* addr() const;
+    void resize(uint32_t);
+
+    std::string name() const;
+    uint32_t size();
     char* addr();
 
   private:
     head* _head { nullptr };
+    uint32_t _size { 0 };
 };
 
 }    // namespace miu::shm
