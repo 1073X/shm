@@ -12,12 +12,12 @@ using miu::shm::tempfs;
 
 struct ut_buffer : public testing::Test {
     void SetUp() override {
-        using miu::log::severity;
-        miu::log::log::instance()->reset(severity::DEBUG, 1024);
+        // using miu::log::severity;
+        // miu::log::log::instance()->reset(severity::DEBUG, 1024);
     }
     void TearDown() override {
         tempfs::remove("ut_buffer");
-        miu::log::log::instance()->dump();
+        // miu::log::log::instance()->dump();
     }
 };
 
@@ -36,7 +36,7 @@ TEST_F(ut_buffer, create) {
     miu::shm::buffer buf { "ut_buffer", 4095 };
     EXPECT_EQ(4096U, buf.size());    // aliged to page size
     EXPECT_EQ("ut_buffer", buf.name());
-    EXPECT_NE(nullptr, buf.addr());
+    EXPECT_NE(nullptr, buf.data());
 
     EXPECT_TRUE(buf);
     EXPECT_TRUE(tempfs::exists("ut_buffer"));
@@ -112,11 +112,11 @@ TEST_F(ut_buffer, move) {
 
 TEST_F(ut_buffer, resize) {
     miu::shm::buffer buf { "ut_buffer", 8192 };
-    auto old_addr = buf.addr();
+    auto old_addr = buf.data();
 
     buf.resize(4096);
     EXPECT_EQ(8192U, buf.size());
-    EXPECT_EQ(old_addr, buf.addr());
+    EXPECT_EQ(old_addr, buf.data());
 
     buf.resize(12288);
     EXPECT_EQ("ut_buffer", buf.name());

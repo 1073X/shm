@@ -7,6 +7,8 @@
 #include "head.hpp"
 #include "roster.hpp"
 
+#define HEAD ((head*)_addr)
+
 namespace miu::shm {
 
 buffer::buffer(com::strcat const& name_cat, uint32_t len) noexcept {
@@ -15,7 +17,7 @@ buffer::buffer(com::strcat const& name_cat, uint32_t len) noexcept {
         if (name.size() < sizeof(head::name)) {
             if (roster::instance()->try_insert(name)) {
                 load(name, len);
-                if (!_head) {
+                if (!_addr) {
                     roster::instance()->erase(name);
                 }
             } else {
@@ -28,66 +30,66 @@ buffer::buffer(com::strcat const& name_cat, uint32_t len) noexcept {
 }
 
 buffer::buffer(buffer&& another)
-    : _head(another._head) {
-    another._head = nullptr;
+    : _addr(another._addr) {
+    another._addr = nullptr;
 }
 
 buffer& buffer::operator=(buffer&& another) {
-    std::swap(_head, another._head);
+    std::swap(_addr, another._addr);
     return *this;
 }
 
 buffer::~buffer() {
-    if (_head) {
+    if (_addr) {
         log::debug(+"release shm", name());
         roster::instance()->erase(name());    // earse anyway
-        head::close(_head);
+        head::close(HEAD);
     }
 }
 
 bool buffer::operator!() const {
-    return !_head;
+    return !_addr;
 }
 
 std::string buffer::name() const {
-    assert(_head != nullptr);
-    return { +_head->name };
+    assert(_addr != nullptr);
+    return { +HEAD->name };
 }
 
 uint32_t buffer::size() {
-    assert(_head != nullptr);
-    if (UNLIKELY(_head->size > _size)) {
+    assert(_addr != nullptr);
+    if (UNLIKELY(HEAD->size > _size)) {
         load(name(), 0);
     }
-    return _head->size;
+    return HEAD->size;
 }
 
-char* buffer::addr() {
-    assert(_head != nullptr);
-    if (UNLIKELY(_head->size > _size)) {
+char* buffer::data() {
+    assert(_addr != nullptr);
+    if (UNLIKELY(HEAD->size > _size)) {
         load(name(), 0);
     }
-    return (char*)_head + _head->offset;
+    return (char*)_addr + HEAD->offset;
 }
 
 void buffer::resize(uint32_t new_size) {
-    assert(_head != nullptr);
+    assert(_addr != nullptr);
     if (new_size > size()) {
         load(name(), new_size);
     }
 }
 
 void buffer::load(std::string name, uint32_t size) {
-    head::close(_head);
+    head::close(HEAD);
     if (size > 0) {
-        _head = head::make(name, size);
+        _addr = head::make(name, size);
     } else {
-        _head = head::open(name);
+        _addr = head::open(name);
     }
 
-    if (_head) {
-        _size = _head->size;
-        log::debug(+"load shm", name, _head->size);
+    if (_addr) {
+        _size = HEAD->size;
+        log::debug(+"load shm", name, HEAD->size);
     }
 }
 
