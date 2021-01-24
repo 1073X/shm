@@ -1,64 +1,96 @@
 
 #include "shm/buffer.hpp"
 
+#include <com/predict.hpp>
 #include <log/log.hpp>
 
-#include "alloc.hpp"
 #include "head.hpp"
 #include "roster.hpp"
 
+#define HEAD ((head*)_addr)
+
 namespace miu::shm {
 
-buffer::buffer(com::strcat const& name, uint32_t len) noexcept {
-    if (roster::instance()->try_insert(name.str())) {
-        _head = alloc(name.str(), align(len));
-        if (!_head) {
-            roster::instance()->erase(name.str());
+buffer::buffer(com::strcat const& name_cat, uint32_t len) noexcept {
+    auto name = name_cat.str();
+    if (!name.empty()) {
+        if (name.size() < sizeof(head::name)) {
+            if (roster::instance()->try_insert(name)) {
+                load(name, len);
+                if (!_addr) {
+                    roster::instance()->erase(name);
+                }
+            } else {
+                log::error(+"duplicated shm", name);
+            }
+        } else {
+            log::error(+"invalid shm name", name);
         }
-    } else {
-        log::error(name.str(), +"create duplicated shm::buffer");
     }
 }
 
 buffer::buffer(buffer&& another)
-    : _head(another._head) {
-    another._head = nullptr;
+    : _addr(another._addr) {
+    another._addr = nullptr;
 }
 
 buffer& buffer::operator=(buffer&& another) {
-    std::swap(_head, another._head);
+    std::swap(_addr, another._addr);
     return *this;
 }
 
 buffer::~buffer() {
-    if (_head) {
+    if (_addr) {
+        log::debug(+"release shm", name());
         roster::instance()->erase(name());    // earse anyway
-        dealloc(_head);
+        head::close(HEAD);
     }
 }
 
 bool buffer::operator!() const {
-    return !_head;
+    return !_addr;
 }
 
-const char* buffer::name() const {
-    assert(_head != nullptr);
-    return +_head->name;
+std::string buffer::name() const {
+    assert(_addr != nullptr);
+    return { +HEAD->name };
 }
 
-uint32_t buffer::size() const {
-    assert(_head != nullptr);
-    return _head->size - sizeof(head);
+uint32_t buffer::size() {
+    assert(_addr != nullptr);
+    if (UNLIKELY(HEAD->size > _size)) {
+        load(name(), 0);
+    }
+    return HEAD->size;
 }
 
-const char* buffer::addr() const {
-    assert(_head != nullptr);
-    return (const char*)(_head + 1);
+char* buffer::data() {
+    assert(_addr != nullptr);
+    if (UNLIKELY(HEAD->size > _size)) {
+        load(name(), 0);
+    }
+    return (char*)_addr + HEAD->offset;
 }
 
-char* buffer::addr() {
-    auto val = const_cast<buffer const*>(this)->addr();
-    return const_cast<char*>(val);
+void buffer::resize(uint32_t new_size) {
+    assert(_addr != nullptr);
+    if (new_size > size()) {
+        load(name(), new_size);
+    }
+}
+
+void buffer::load(std::string name, uint32_t size) {
+    head::close(HEAD);
+    if (size > 0) {
+        _addr = head::make(name, size);
+    } else {
+        _addr = head::open(name);
+    }
+
+    if (_addr) {
+        _size = HEAD->size;
+        log::debug(+"load shm", name, HEAD->size);
+    }
 }
 
 }    // namespace miu::shm

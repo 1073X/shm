@@ -4,11 +4,9 @@
 
 namespace miu::shm {
 
-class head;
-
 class buffer {
   public:
-    buffer(com::strcat const& name = "", uint32_t len = 0) noexcept;
+    buffer(com::strcat const& = "", uint32_t = 0) noexcept;
     buffer(buffer&&);
     buffer& operator=(buffer&&);
     ~buffer();
@@ -16,13 +14,18 @@ class buffer {
     bool operator!() const;
     operator bool() const { return !operator!(); }
 
-    const char* name() const;
-    uint32_t size() const;
-    const char* addr() const;
-    char* addr();
+    std::string name() const;
+    uint32_t size();
+    char* data();
+
+    void resize(uint32_t);
 
   private:
-    head* _head { nullptr };
+    void load(std::string, uint32_t);
+
+  private:
+    void* _addr { nullptr };
+    uint32_t _size { 0 };
 };
 
 }    // namespace miu::shm
