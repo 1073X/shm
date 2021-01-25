@@ -10,9 +10,9 @@ class tempfs {
   public:
     static std::filesystem::path root();
 
-    template<typename... ARGS>
-    static auto join(ARGS&&... args) {
-        auto filename = com::strcat { std::forward<ARGS>(args)... }.str();
+    template<typename T, typename... ARGS>
+    static auto join(T const& t, ARGS&&... args) {
+        auto filename = com::strcat { t, std::forward<ARGS>(args)... }.str();
         if (filename.empty()) {
             FATAL_ERROR("empty shmem file name");
         }
