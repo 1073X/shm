@@ -9,7 +9,6 @@ using miu::shm::tempfs;
 
 TEST(ut_tempfs, join) {
     EXPECT_EQ("/dev/shm/xyz.1.abc", tempfs::join("xyz", 1, "abc"));
-    EXPECT_ANY_THROW(tempfs::join());
     EXPECT_ANY_THROW(tempfs::join(""));
 }
 
