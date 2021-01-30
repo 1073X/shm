@@ -56,6 +56,11 @@ std::string buffer::name() const {
     return { +HEAD->name };
 }
 
+com::datetime buffer::resize_time() const {
+    assert(_addr != nullptr);
+    return HEAD->resize_time;
+}
+
 uint32_t buffer::size() {
     assert(_addr != nullptr);
     if (UNLIKELY(HEAD->size > _size)) {

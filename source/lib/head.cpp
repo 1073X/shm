@@ -32,11 +32,13 @@ head* head::make(std::string name, uint32_t size) {
         ERR_RETURN(fstat);
     }
 
-    auto total = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE + PAGE_SIZE;
+    auto resize_time = com::datetime::min();
+    auto total      = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE + PAGE_SIZE;
     if (st.st_size < total) {
         if (ftruncate(fd, total)) {
             ERR_RETURN(ftruncate);
         }
+        resize_time = com::datetime::now();
     } else {
         total = st.st_size;
     }
@@ -66,8 +68,9 @@ head* head::make(std::string name, uint32_t size) {
 
     auto h = new (addr) head {};
     std::strncpy(h->name, name.c_str(), sizeof(h->name));
-    h->offset = PAGE_SIZE;
-    h->size   = total - h->offset;
+    h->offset     = PAGE_SIZE;
+    h->size       = total - h->offset;
+    h->resize_time = std::max(resize_time, h->resize_time);
 
     ::close(fd);
     return (head*)addr;
