@@ -1,5 +1,6 @@
 #pragma once
 
+#include <com/datetime.hpp>
 #include <com/strcat.hpp>
 
 namespace miu::shm {
@@ -15,6 +16,8 @@ class buffer {
     operator bool() const { return !operator!(); }
 
     std::string name() const;
+    com::datetime resize_time() const;
+
     uint32_t size();
     char* data();
 

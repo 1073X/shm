@@ -1,5 +1,6 @@
 #pragma once
 
+#include <com/datetime.hpp>
 #include <string>
 
 namespace miu::shm {
@@ -8,7 +9,8 @@ struct head {
     char name[16];
     uint32_t size;
     uint32_t offset;
-    char padding[40];
+    com::datetime resize_time;
+    char padding[32];
 
     static head* make(std::string, uint32_t);
     static head* open(std::string);

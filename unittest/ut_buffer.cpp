@@ -8,6 +8,7 @@
 #include "shm/tempfs.hpp"
 
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 using miu::shm::tempfs;
 
 struct ut_buffer : public testing::Test {
@@ -46,22 +47,34 @@ TEST_F(ut_buffer, create) {
              | fs::perms::group_write;
     auto status = fs::status(tempfs::join("ut_buffer"));
     EXPECT_EQ(exp, status.permissions());
+
+    EXPECT_GT(1s, miu::com::datetime::now() - buf.resize_time());
 }
 
 TEST_F(ut_buffer, extend) {
-    { miu::shm::buffer { "ut_buffer", 4096 }; }
+    auto resize_time = miu::com::datetime::min();
+    {
+        miu::shm::buffer buf { "ut_buffer", 4096 };
+        resize_time = buf.resize_time();
+    }
 
     miu::shm::buffer buf { "ut_buffer", 8192 };
     EXPECT_EQ(8192U, buf.size());
+    EXPECT_GT(buf.resize_time(), resize_time);
 }
 
 TEST_F(ut_buffer, open) {
-    { miu::shm::buffer { "ut_buffer", 4096 }; }
+    auto resize_time = miu::com::datetime::min();
+    {
+        miu::shm::buffer buf { "ut_buffer", 4096 };
+        resize_time = buf.resize_time();
+    }
 
     miu::shm::buffer buf { "ut_buffer" };
     EXPECT_TRUE(buf);
     EXPECT_EQ(4096U, buf.size());
     EXPECT_EQ("ut_buffer", buf.name());
+    EXPECT_EQ(resize_time, buf.resize_time());
 }
 
 TEST_F(ut_buffer, open_failed) {
