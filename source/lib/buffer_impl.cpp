@@ -1,8 +1,9 @@
 
-#include "head.hpp"
+#include "buffer_impl.hpp"
 
-#include <fcntl.h>     /* For O_* constants */
-#include <string.h>    // strerror
+#include <fcntl.h>       /* For O_* constants */
+#include <string.h>      // strerror
+#include <sys/file.h>    // flock
 #include <sys/mman.h>
 #include <sys/stat.h>  /* For mode constants */
 #include <unistd.h>    // ftruncate
@@ -19,7 +20,13 @@ namespace miu::shm {
 
 static uint32_t const PAGE_SIZE = getpagesize();
 
-head* head::make(std::string name, uint32_t size) {
+buffer_impl* buffer_impl::make(std::string name, uint32_t size) {
+    // 0. check name length
+    if (name.size() >= sizeof(buffer_impl::_name)) {
+        log::error(name, +"excceeds max shm name length");
+        return nullptr;
+    }
+
     // 1. open file
     auto fd = shm_open(name.c_str(), O_RDWR | O_CREAT, 0);
     if (fd <= 0) {
@@ -32,13 +39,11 @@ head* head::make(std::string name, uint32_t size) {
         ERR_RETURN(fstat);
     }
 
-    auto resize_time = com::datetime::min();
-    auto total      = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE + PAGE_SIZE;
+    auto total = ((size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE + PAGE_SIZE;
     if (st.st_size < total) {
         if (ftruncate(fd, total)) {
             ERR_RETURN(ftruncate);
         }
-        resize_time = com::datetime::now();
     } else {
         total = st.st_size;
     }
@@ -61,29 +66,29 @@ head* head::make(std::string name, uint32_t size) {
        a new address that may or may not depend on the hint.  The
        address of the new mapping is returned as the result of the call.
      ******************************/
-    auto addr = (char*)::mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    auto addr = ::mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (!addr) {
         ERR_RETURN(mmap);
     }
 
-    auto h = new (addr) head {};
-    std::strncpy(h->name, name.c_str(), sizeof(h->name));
-    h->offset     = PAGE_SIZE;
-    h->size       = total - h->offset;
-    h->resize_time = std::max(resize_time, h->resize_time);
+    auto impl = new (addr) buffer_impl { name, total, PAGE_SIZE };
+    log::info(+"create shm", name, impl->size());
+
+    ::flock(fd, LOCK_EX);
+    impl->add_audit_log("resize");
 
     ::close(fd);
-    return (head*)addr;
+    return impl;
 }
 
-head* head::open(std::string name) {
+buffer_impl* buffer_impl::open(std::string name) {
     // 1. open file
     auto fd = shm_open(name.c_str(), O_RDWR, 0);
     if (fd <= 0) {
         ERR_RETURN(shm_open);
     }
 
-    // 2. verify and adjust file size
+    // 2. retrieve total size
     struct stat st;
     if (fstat(fd, &st)) {
         ERR_RETURN(fstat);
@@ -95,21 +100,40 @@ head* head::open(std::string name) {
     }
 
     // 3. map the file in memory
-    auto addr = (char*)::mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (!addr) {
+    auto impl = (buffer_impl*)::mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (!impl) {
         ERR_RETURN(mmap);
     }
 
+    log::info(+"open shm", name, impl->size());
+
+    ::flock(fd, LOCK_EX);
+    impl->add_audit_log("open");
+
     ::close(fd);
-    return (head*)addr;
+    return impl;
 }
 
-void head::close(head* h) {
-    if (h) {
-        auto total = h->size + h->offset;
-        msync(h, total, MS_SYNC | MS_INVALIDATE);
-        munmap(h, total);
+void buffer_impl::close(buffer_impl* impl) {
+    if (impl) {
+        auto total = impl->_size + impl->_offset;
+        msync(impl, total, MS_SYNC | MS_INVALIDATE);
+        munmap(impl, total);
     }
+}
+
+///////////////////////////////////////////////////////////////
+
+buffer_impl::buffer_impl(std::string_view name, uint32_t total, uint32_t offset) {
+    std::strncpy(_name, name.data(), sizeof(_name));
+    _offset = offset;
+    _size   = total - offset;
+}
+
+void buffer_impl::add_audit_log(std::string_view text) {
+    auto max = (_offset - sizeof(buffer_impl)) / sizeof(audit);
+    auto idx = (_audit_size++) % max;
+    new (_audits + idx) audit { text };
 }
 
 }    // namespace miu::shm

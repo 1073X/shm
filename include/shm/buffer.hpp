@@ -5,6 +5,8 @@
 
 namespace miu::shm {
 
+class buffer_impl;
+
 class buffer {
   public:
     buffer(com::strcat const& = "", uint32_t = 0) noexcept;
@@ -16,9 +18,8 @@ class buffer {
     operator bool() const { return !operator!(); }
 
     std::string name() const;
-    com::datetime resize_time() const;
 
-    uint32_t size();
+    auto size() const { return _size; }
     char* data();
 
     void resize(uint32_t);
@@ -27,7 +28,7 @@ class buffer {
     void load(std::string, uint32_t);
 
   private:
-    void* _addr { nullptr };
+    buffer_impl* _impl { nullptr };
     uint32_t _size { 0 };
 };
 

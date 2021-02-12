@@ -6,6 +6,7 @@
 
 #include "shm/buffer.hpp"
 #include "shm/tempfs.hpp"
+#include "source/lib/buffer_impl.hpp"
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
@@ -13,7 +14,7 @@ using miu::shm::tempfs;
 
 struct ut_buffer : public testing::Test {
     void SetUp() override {
-        // using miu::log::severity;
+        using miu::log::severity;
         // miu::log::log::instance()->reset(severity::DEBUG, 1024);
     }
     void TearDown() override {
@@ -47,34 +48,22 @@ TEST_F(ut_buffer, create) {
              | fs::perms::group_write;
     auto status = fs::status(tempfs::join("ut_buffer"));
     EXPECT_EQ(exp, status.permissions());
-
-    EXPECT_GT(1s, miu::com::datetime::now() - buf.resize_time());
 }
 
 TEST_F(ut_buffer, extend) {
-    auto resize_time = miu::com::datetime::min();
-    {
-        miu::shm::buffer buf { "ut_buffer", 4096 };
-        resize_time = buf.resize_time();
-    }
+    { miu::shm::buffer buf { "ut_buffer", 4096 }; }
 
     miu::shm::buffer buf { "ut_buffer", 8192 };
     EXPECT_EQ(8192U, buf.size());
-    EXPECT_GT(buf.resize_time(), resize_time);
 }
 
 TEST_F(ut_buffer, open) {
-    auto resize_time = miu::com::datetime::min();
-    {
-        miu::shm::buffer buf { "ut_buffer", 4096 };
-        resize_time = buf.resize_time();
-    }
+    { miu::shm::buffer buf { "ut_buffer", 4096 }; }
 
     miu::shm::buffer buf { "ut_buffer" };
     EXPECT_TRUE(buf);
     EXPECT_EQ(4096U, buf.size());
     EXPECT_EQ("ut_buffer", buf.name());
-    EXPECT_EQ(resize_time, buf.resize_time());
 }
 
 TEST_F(ut_buffer, open_failed) {
@@ -134,4 +123,18 @@ TEST_F(ut_buffer, resize) {
     buf.resize(12288);
     EXPECT_EQ("ut_buffer", buf.name());
     EXPECT_EQ(12288U, buf.size());
+}
+
+TEST_F(ut_buffer, audit) {
+    { miu::shm::buffer { "ut_buffer", 8192 }; }
+    { miu::shm::buffer { "ut_buffer" }; }
+
+    auto impl = miu::shm::buffer_impl::open("ut_buffer");
+    EXPECT_EQ(3U, impl->audit_size());
+
+    auto audits = impl->audits();
+    EXPECT_EQ("resize", audits[0].text());
+    EXPECT_EQ("open", audits[1].text());
+
+    miu::shm::buffer_impl::close(impl);
 }
