@@ -75,7 +75,7 @@ buffer_impl* buffer_impl::make(std::string name, uint32_t size) {
     log::info(+"create shm", name, impl->size());
 
     ::flock(fd, LOCK_EX);
-    impl->add_audit_log("resize");
+    impl->add_audit("RESIZE");
 
     ::close(fd);
     return impl;
@@ -108,7 +108,7 @@ buffer_impl* buffer_impl::open(std::string name) {
     log::info(+"open shm", name, impl->size());
 
     ::flock(fd, LOCK_EX);
-    impl->add_audit_log("open");
+    impl->add_audit("OPEN");
 
     ::close(fd);
     return impl;
@@ -130,10 +130,22 @@ buffer_impl::buffer_impl(std::string_view name, uint32_t total, uint32_t offset)
     _size   = total - offset;
 }
 
-void buffer_impl::add_audit_log(std::string_view text) {
-    auto max = (_offset - sizeof(buffer_impl)) / sizeof(audit);
-    auto idx = (_audit_size++) % max;
+uint32_t buffer_impl::audit_max() const {
+    return (_offset - sizeof(buffer_impl)) / sizeof(audit);
+}
+
+void buffer_impl::add_audit(std::string_view text) {
+    auto idx = _audit_size++ % audit_max();
     new (_audits + idx) audit { text };
+}
+
+audit_iterator buffer_impl::begin() {
+    auto idx = _audit_size >= audit_max() ? (_audit_size - audit_max()) % audit_max() : 0;
+    return { _audits, idx, audit_max() };
+}
+
+audit_iterator buffer_impl::end() {
+    return { _audits, _audit_size, audit_max() };
 }
 
 }    // namespace miu::shm

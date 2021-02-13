@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <meta/info.hpp>
+
 #include "source/lib/buffer_impl.hpp"
 
 using namespace std::chrono_literals;
@@ -7,11 +9,13 @@ using miu::shm::audit;
 using miu::shm::buffer_impl;
 
 TEST(ut_buffer_impl, init) {
-    uint64_t buf[512];
-    auto impl = new (buf) buffer_impl { "name", 4096, 128 };
+    uint64_t buf[512] {};
+    auto impl = new (buf) buffer_impl { "name", 4096, 512 };
     EXPECT_STREQ("name", impl->name());
-    EXPECT_EQ(4096 - 128, impl->size());
-    EXPECT_EQ(128, impl->offset());
+    EXPECT_EQ(4096 - 512, impl->size());
+    EXPECT_EQ(512, impl->offset());
+
+    EXPECT_EQ(impl->begin(), impl->end());
 }
 
 TEST(ut_buffer_impl, audit_log) {
@@ -23,20 +27,38 @@ TEST(ut_buffer_impl, audit_log) {
     auto impl = new (buf) buffer_impl { "name", 1024, 512 };
 
     auto now = miu::com::datetime::now();
-    impl->add_audit_log("resize");
-    impl->add_audit_log("open");
+    impl->add_audit("resize");
+    impl->add_audit("open");
 
-    auto audits = (audit const*)((const char*)buf + sizeof(buffer_impl));
+    auto it = impl->begin();
+    EXPECT_EQ(miu::meta::info(), it->info());
+    EXPECT_EQ("resize", it->text());
+    EXPECT_GT(1ms, it->time() - now);
+    std::cout << miu::com::to_string(*it) << std::endl;
 
-    EXPECT_EQ("ut_buffer_impl", audits[0].category());
-    EXPECT_EQ("ut_buffer_impl", audits[0].type());
-    EXPECT_EQ("ut_buffer_impl", audits[0].name());
-    EXPECT_EQ("resize", audits[0].text());
-    EXPECT_GT(1ms, audits[0].time() - now);
+    it++;
+    EXPECT_EQ("open", it->text());
+    EXPECT_GT(1ms, it->time() - now);
 
-    EXPECT_EQ("ut_buffer_impl", audits[1].category());
-    EXPECT_EQ("ut_buffer_impl", audits[1].type());
-    EXPECT_EQ("ut_buffer_impl", audits[1].name());
-    EXPECT_EQ("open", audits[1].text());
-    EXPECT_GT(1ms, audits[1].time() - audits[0].time());
+    it++;
+    EXPECT_EQ(impl->end(), it);
+}
+
+TEST(ut_buffer_impl, audit_wrapping) {
+    uint64_t buf[512] {};
+    auto impl = new (buf) buffer_impl { "name", 1024, 512 };
+
+    auto max = (512 - sizeof(buffer_impl)) / sizeof(audit);
+    for (auto i = 0U; i < max; i++) {
+        impl->add_audit(std::to_string(i));
+    }
+
+    impl->add_audit(std::to_string(max));
+    impl->add_audit(std::to_string(max + 1));
+    EXPECT_EQ(max + 2, impl->audit_size());
+
+    auto it = impl->begin();
+    for (auto i = 2U; i < impl->audit_size(); i++) {
+        EXPECT_EQ(std::to_string(i), (it++)->text());
+    }
 }
