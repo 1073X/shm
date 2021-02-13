@@ -44,6 +44,9 @@ delivery:
         - mkdir -p $UT_PATH
         - cp -fv release/ut_shm $UT_PATH
 
+        - mkdir -p $BIN_PATH
+        - cp -fv release/shmview $BIN_PATH
+
     only:
         - master
 

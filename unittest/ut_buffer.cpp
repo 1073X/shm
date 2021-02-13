@@ -132,9 +132,9 @@ TEST_F(ut_buffer, audit) {
     auto impl = miu::shm::buffer_impl::open("ut_buffer");
     EXPECT_EQ(3U, impl->audit_size());
 
-    auto audits = impl->audits();
-    EXPECT_EQ("resize", audits[0].text());
-    EXPECT_EQ("open", audits[1].text());
+    auto it = impl->begin();
+    EXPECT_EQ("RESIZE", (it++)->text());
+    EXPECT_EQ("OPEN", (it++)->text());
 
     miu::shm::buffer_impl::close(impl);
 }
