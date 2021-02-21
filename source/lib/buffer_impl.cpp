@@ -81,9 +81,16 @@ buffer_impl* buffer_impl::make(std::string name, uint32_t size) {
     return impl;
 }
 
-buffer_impl* buffer_impl::open(std::string name) {
+buffer_impl* buffer_impl::open(std::string name, mode m) {
+    auto flag = O_RDONLY;
+    auto prot = PROT_READ;
+    if (mode::RDWR == m) {
+        flag = O_RDWR;
+        prot |= PROT_WRITE;
+    }
+
     // 1. open file
-    auto fd = shm_open(name.c_str(), O_RDWR, 0);
+    auto fd = shm_open(name.c_str(), flag, 0);
     if (fd <= 0) {
         ERR_RETURN(shm_open);
     }
@@ -100,23 +107,27 @@ buffer_impl* buffer_impl::open(std::string name) {
     }
 
     // 3. map the file in memory
-    auto impl = (buffer_impl*)::mmap(nullptr, total, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    auto impl = (buffer_impl*)::mmap(nullptr, total, prot, MAP_SHARED, fd, 0);
     if (!impl) {
         ERR_RETURN(mmap);
     }
 
     // 4. audit
-    impl->add_audit(fd, "OPEN");
+    if (mode::RDWR == m) {
+        impl->add_audit(fd, "OPEN");
+    }
 
     ::close(fd);
     return impl;
 }
 
-void buffer_impl::close(buffer_impl* impl) {
+void buffer_impl::close(buffer_impl* impl, mode m) {
     if (impl) {
-        auto fd = shm_open(impl->name(), O_RDONLY, 0);
-        impl->add_audit(fd, "CLOSE");
-        ::close(fd);
+        if (mode::RDWR == m) {
+            auto fd = shm_open(impl->name(), O_RDONLY, 0);
+            impl->add_audit(fd, "CLOSE");
+            ::close(fd);
+        }
 
         auto total = impl->_size + impl->_offset;
         msync(impl, total, MS_SYNC | MS_INVALIDATE);

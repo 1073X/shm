@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "shm/mode.hpp"
+
 #include "audit_iterator.hpp"
 
 namespace miu::shm {
@@ -11,8 +13,8 @@ class buffer_impl {
     buffer_impl(std::string_view name, uint32_t total, uint32_t offset);
 
     static buffer_impl* make(std::string, uint32_t);
-    static buffer_impl* open(std::string);
-    static void close(buffer_impl*);
+    static buffer_impl* open(std::string, mode);
+    static void close(buffer_impl*, mode);
 
     const char* name() const { return _name; }
     auto size() const { return _size; }
