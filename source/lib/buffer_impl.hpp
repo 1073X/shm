@@ -24,7 +24,7 @@ class buffer_impl {
     audit_iterator begin();
     audit_iterator end();
 
-    void add_audit(std::string_view);
+    void add_audit(int32_t, std::string_view);
 
   private:
     auto padding() const { return _padding; }

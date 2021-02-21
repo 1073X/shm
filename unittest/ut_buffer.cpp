@@ -29,12 +29,15 @@ TEST_F(ut_buffer, default) {
     EXPECT_TRUE(!buf);
 }
 
-TEST_F(ut_buffer, invalid_name) {
-    miu::shm::buffer buf { "0123456789abcdef", 4096 };
-    EXPECT_FALSE(buf);
+TEST_F(ut_buffer, invalid) {
+    miu::shm::buffer invalid { "0123456789abcdef", 4096 };
+    EXPECT_FALSE(invalid);
+
+    miu::shm::buffer empty { "", 4096 };
+    EXPECT_FALSE(empty);
 }
 
-TEST_F(ut_buffer, create) {
+TEST_F(ut_buffer, make) {
     miu::shm::buffer buf { "ut_buffer", 4095 };
     EXPECT_EQ(4096U, buf.size());    // aliged to page size
     EXPECT_EQ("ut_buffer", buf.name());
@@ -48,6 +51,13 @@ TEST_F(ut_buffer, create) {
              | fs::perms::group_write;
     auto status = fs::status(tempfs::join("ut_buffer"));
     EXPECT_EQ(exp, status.permissions());
+}
+
+TEST_F(ut_buffer, shrink) {
+    { miu::shm::buffer buf { "ut_buffer", 8192 }; }
+
+    miu::shm::buffer buf { "ut_buffer", 4096 };
+    EXPECT_EQ(8192U, buf.size());
 }
 
 TEST_F(ut_buffer, extend) {
@@ -68,11 +78,6 @@ TEST_F(ut_buffer, open) {
 
 TEST_F(ut_buffer, open_failed) {
     miu::shm::buffer buf { "ut_buffer" };
-    EXPECT_FALSE(buf);
-}
-
-TEST_F(ut_buffer, create_0) {
-    miu::shm::buffer buf { "ut_buffer", 0 };
     EXPECT_FALSE(buf);
 }
 
@@ -130,11 +135,13 @@ TEST_F(ut_buffer, audit) {
     { miu::shm::buffer { "ut_buffer" }; }
 
     auto impl = miu::shm::buffer_impl::open("ut_buffer");
-    EXPECT_EQ(3U, impl->audit_size());
+    EXPECT_EQ(5U, impl->audit_size());
 
     auto it = impl->begin();
-    EXPECT_EQ("RESIZE", (it++)->text());
+    EXPECT_EQ("MAKE", (it++)->text());
+    EXPECT_EQ("CLOSE", (it++)->text());
     EXPECT_EQ("OPEN", (it++)->text());
+    EXPECT_EQ("CLOSE", (it++)->text());
 
     miu::shm::buffer_impl::close(impl);
 }

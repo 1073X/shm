@@ -1,3 +1,4 @@
+#include <fcntl.h>    // open
 #include <gtest/gtest.h>
 
 #include <meta/info.hpp>
@@ -26,9 +27,11 @@ TEST(ut_buffer_impl, audit_log) {
     uint64_t buf[512] {};
     auto impl = new (buf) buffer_impl { "name", 1024, 512 };
 
+    auto fd  = ::open("ut_buffer_impl.audit_log", O_CREAT);
     auto now = miu::com::datetime::now();
-    impl->add_audit("resize");
-    impl->add_audit("open");
+    impl->add_audit(fd, "resize");
+    impl->add_audit(fd, "open");
+    ::close(fd);
 
     auto it = impl->begin();
     EXPECT_EQ(miu::meta::info(), it->info());
@@ -48,14 +51,18 @@ TEST(ut_buffer_impl, audit_wrapping) {
     uint64_t buf[512] {};
     auto impl = new (buf) buffer_impl { "name", 1024, 512 };
 
+    auto fd = ::open("ut_buffer_impl.audit_wrapping", O_CREAT);
+
     auto max = (512 - sizeof(buffer_impl)) / sizeof(audit);
     for (auto i = 0U; i < max; i++) {
-        impl->add_audit(std::to_string(i));
+        impl->add_audit(fd, std::to_string(i));
     }
 
-    impl->add_audit(std::to_string(max));
-    impl->add_audit(std::to_string(max + 1));
+    impl->add_audit(fd, std::to_string(max));
+    impl->add_audit(fd, std::to_string(max + 1));
     EXPECT_EQ(max + 2, impl->audit_size());
+
+    ::close(fd);
 
     auto it = impl->begin();
     for (auto i = 2U; i < impl->audit_size(); i++) {
