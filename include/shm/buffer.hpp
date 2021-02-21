@@ -3,6 +3,8 @@
 #include <com/datetime.hpp>
 #include <com/strcat.hpp>
 
+#include "mode.hpp"
+
 namespace miu::shm {
 
 class buffer_impl;
@@ -10,8 +12,8 @@ class buffer_impl;
 class buffer {
   public:
     buffer() = default;
-    buffer(com::strcat const&, uint32_t) noexcept;    // create or resize
-    buffer(com::strcat const&) noexcept;              // open
+    buffer(com::strcat const&, uint32_t) noexcept;     // create or resize
+    buffer(com::strcat const&, enum mode) noexcept;    // open read-only or read-write
     buffer(buffer&&);
     buffer& operator=(buffer&&);
     ~buffer();
@@ -21,14 +23,16 @@ class buffer {
 
     std::string name() const;
 
+    auto mode() const { return _mode; }
     auto size() const { return _size; }
     char* data();
 
-    void resize(uint32_t);
+    bool resize(uint32_t);
 
   private:
     buffer_impl* _impl { nullptr };
     uint32_t _size { 0 };
+    enum mode _mode { mode::MAX };
 };
 
 }    // namespace miu::shm

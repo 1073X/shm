@@ -19,7 +19,7 @@ int32_t main(int32_t argc, const char* argv[]) try {
         std::cout << "\nUsage: shmview [shm]" << std::endl;
     } else {
         auto name = settings.required<std::string>(0);
-        auto impl = miu::shm::buffer_impl::open(name);
+        auto impl = miu::shm::buffer_impl::open(name, miu::shm::mode::READ);
         if (!impl) {
             FATAL_ERROR<std::runtime_error>("cannot find shm", name);
         }
@@ -29,7 +29,7 @@ int32_t main(int32_t argc, const char* argv[]) try {
             std::cout << miu::com::to_string(audit) << std::endl;
         }
 
-        miu::shm::buffer_impl::close(impl);
+        miu::shm::buffer_impl::close(impl, miu::shm::mode::READ);
     }
 
     return 0;
