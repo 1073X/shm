@@ -9,12 +9,30 @@
 
 namespace miu::shm {
 
-buffer::buffer(com::strcat const& name_cat, uint32_t len) noexcept {
+buffer::buffer(com::strcat const& name_cat, uint32_t size) noexcept
+    : buffer() {
+    assert(size > 0 && "why do you want to create a 0 shm buffer?");
+
     auto name = name_cat.str();
     if (roster::instance()->try_insert(name)) {
-        load(name, len);
+        _impl = buffer_impl::make(name, size);
         if (!_impl) {
             roster::instance()->erase(name);
+        } else {
+            _size = _impl->size();
+        }
+    }
+}
+
+buffer::buffer(com::strcat const& name_cat) noexcept
+    : buffer() {
+    auto name = name_cat.str();
+    if (roster::instance()->try_insert(name)) {
+        _impl = buffer_impl::open(name);
+        if (!_impl) {
+            roster::instance()->erase(name);
+        } else {
+            _size = _impl->size();
         }
     }
 }
@@ -31,7 +49,6 @@ buffer& buffer::operator=(buffer&& another) {
 
 buffer::~buffer() {
     if (_impl) {
-        log::debug(+"release shm", name());
         roster::instance()->erase(name());    // erase anyway
         buffer_impl::close(_impl);
     }
@@ -48,30 +65,28 @@ std::string buffer::name() const {
 
 char* buffer::data() {
     assert(_impl != nullptr);
+
+    // TBD: this branch is not covered by unittest, because it is impossible to open the same
+    // shm more than once in the same proc
     if (UNLIKELY(_impl->size() > _size)) {
-        load(name(), 0);
+        std::string name { this->name() };
+        log::warn(+"shm", name, +"MUTATED", _size, +"->", _impl->size());
+
+        buffer_impl::close(_impl);
+        _impl = buffer_impl::open(name);
+        _size = _impl->size();
     }
+
     return (char*)_impl + _impl->offset();
 }
 
 void buffer::resize(uint32_t new_size) {
     assert(_impl != nullptr);
     if (new_size > _impl->size()) {
-        load(name(), new_size);
-    }
-}
+        std::string name { this->name() };
 
-void buffer::load(std::string name, uint32_t size) {
-    buffer_impl::close(_impl);
-    _size = 0;
-
-    if (size > 0) {
-        _impl = buffer_impl::make(name, size);
-    } else {
-        _impl = buffer_impl::open(name);
-    }
-
-    if (_impl) {
+        buffer_impl::close(_impl);
+        _impl = buffer_impl::make(name, new_size);
         _size = _impl->size();
     }
 }

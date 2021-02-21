@@ -9,7 +9,9 @@ class buffer_impl;
 
 class buffer {
   public:
-    buffer(com::strcat const& = "", uint32_t = 0) noexcept;
+    buffer() = default;
+    buffer(com::strcat const&, uint32_t) noexcept;    // create or resize
+    buffer(com::strcat const&) noexcept;              // open
     buffer(buffer&&);
     buffer& operator=(buffer&&);
     ~buffer();
@@ -23,9 +25,6 @@ class buffer {
     char* data();
 
     void resize(uint32_t);
-
-  private:
-    void load(std::string, uint32_t);
 
   private:
     buffer_impl* _impl { nullptr };

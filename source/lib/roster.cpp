@@ -9,13 +9,13 @@ roster roster::inst;
 
 bool roster::try_insert(std::string_view name) {
     if (name.empty()) {
-        log::error(+"empty shm name");
+        log::error(+"shm EMPTY NAME");
         return false;
     }
 
     std::lock_guard<std::mutex> l { _mtx };
     if (!_names.insert(name.data()).second) {
-        log::error(+"duplicated shm", name);
+        log::error(+"shm", name, +"DUPLICATED");
         return false;
     }
 

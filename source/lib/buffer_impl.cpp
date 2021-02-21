@@ -1,9 +1,8 @@
 
 #include "buffer_impl.hpp"
 
-#include <fcntl.h>       /* For O_* constants */
-#include <string.h>      // strerror
-#include <sys/file.h>    // flock
+#include <fcntl.h>     /* For O_* constants */
+#include <string.h>    // strerror
 #include <sys/mman.h>
 #include <sys/stat.h>  /* For mode constants */
 #include <unistd.h>    // ftruncate
@@ -11,9 +10,11 @@
 #include <cstring>    // std::strncpy
 #include <log/log.hpp>
 
-#define ERR_RETURN(FUNC)                                           \
-    log::error(name, +#FUNC, errno, (const char*)strerror(errno)); \
-    ::close(fd);                                                   \
+#include "file_lock.hpp"
+
+#define ERR_RETURN(FUNC)                                                   \
+    log::error(+"shm", name, +#FUNC, errno, (const char*)strerror(errno)); \
+    ::close(fd);                                                           \
     return nullptr
 
 namespace miu::shm {
@@ -23,7 +24,7 @@ static uint32_t const PAGE_SIZE = getpagesize();
 buffer_impl* buffer_impl::make(std::string name, uint32_t size) {
     // 0. check name length
     if (name.size() >= sizeof(buffer_impl::_name)) {
-        log::error(name, +"excceeds max shm name length");
+        log::error(+"shm", name, +"excceeds max shm name length");
         return nullptr;
     }
 
@@ -72,10 +73,9 @@ buffer_impl* buffer_impl::make(std::string name, uint32_t size) {
     }
 
     auto impl = new (addr) buffer_impl { name, total, PAGE_SIZE };
-    log::info(+"create shm", name, impl->size());
 
-    ::flock(fd, LOCK_EX);
-    impl->add_audit("RESIZE");
+    // 5. audit
+    impl->add_audit(fd, "MAKE");
 
     ::close(fd);
     return impl;
@@ -105,10 +105,8 @@ buffer_impl* buffer_impl::open(std::string name) {
         ERR_RETURN(mmap);
     }
 
-    log::info(+"open shm", name, impl->size());
-
-    ::flock(fd, LOCK_EX);
-    impl->add_audit("OPEN");
+    // 4. audit
+    impl->add_audit(fd, "OPEN");
 
     ::close(fd);
     return impl;
@@ -116,6 +114,10 @@ buffer_impl* buffer_impl::open(std::string name) {
 
 void buffer_impl::close(buffer_impl* impl) {
     if (impl) {
+        auto fd = shm_open(impl->name(), O_RDONLY, 0);
+        impl->add_audit(fd, "CLOSE");
+        ::close(fd);
+
         auto total = impl->_size + impl->_offset;
         msync(impl, total, MS_SYNC | MS_INVALIDATE);
         munmap(impl, total);
@@ -134,9 +136,12 @@ uint32_t buffer_impl::audit_max() const {
     return (_offset - sizeof(buffer_impl)) / sizeof(audit);
 }
 
-void buffer_impl::add_audit(std::string_view text) {
+void buffer_impl::add_audit(int32_t fd, std::string_view text) {
+    file_lock lock { fd };
+
     auto idx = _audit_size++ % audit_max();
     new (_audits + idx) audit { text };
+    log::debug(+"shm", std::string(name()), text, +"size =", size());
 }
 
 audit_iterator buffer_impl::begin() {
