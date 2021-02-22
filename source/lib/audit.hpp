@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <com/datetime.hpp>
 #include <com/to_string.hpp>
 #include <cstring>    // std::strncpy
+#include <time/stamp.hpp>
 
 namespace miu::shm {
 
@@ -18,7 +18,7 @@ class audit {
   private:
     char _info[48];
     char _text[8];
-    com::datetime _time;
+    time::stamp _time;
 };
 static_assert(sizeof(audit) == CACHE_LINE);
 

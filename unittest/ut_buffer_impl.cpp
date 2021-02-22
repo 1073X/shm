@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <meta/info.hpp>
+#include <time/time.hpp>
 
 #include "source/lib/buffer_impl.hpp"
 
@@ -28,7 +29,7 @@ TEST(ut_buffer_impl, audit_log) {
     auto impl = new (buf) buffer_impl { "name", 1024, 512 };
 
     auto fd  = ::open("ut_buffer_impl.audit_log", O_CREAT);
-    auto now = miu::com::datetime::now();
+    auto now = miu::time::now();
     impl->add_audit(fd, "resize");
     impl->add_audit(fd, "open");
     ::close(fd);
