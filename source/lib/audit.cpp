@@ -4,11 +4,12 @@
 #include <iomanip>
 #include <meta/info.hpp>
 #include <sstream>
+#include <time/time.hpp>
 
 namespace miu::shm {
 
 audit::audit(std::string_view text) {
-    _time = com::datetime::now();
+    _time = time::now();
     std::strncpy(_info, meta::info(), sizeof(_info));
 
     assert(sizeof(_text) > text.size() && "text overflow");
