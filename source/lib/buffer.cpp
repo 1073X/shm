@@ -88,6 +88,10 @@ char* buffer::data() {
     return (char*)_impl + _impl->offset();
 }
 
+const char* buffer::data() const {
+    return const_cast<buffer*>(this)->data();
+}
+
 bool buffer::resize(uint32_t new_size) {
     if (mode::RDWR != _mode) {
         return false;

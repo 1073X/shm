@@ -10,6 +10,7 @@
 
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
+using miu::shm::buffer;
 using miu::shm::mode;
 using miu::shm::tempfs;
 
@@ -25,7 +26,7 @@ struct ut_buffer : public testing::Test {
 };
 
 TEST_F(ut_buffer, default) {
-    miu::shm::buffer buf;
+    buffer buf;
     EXPECT_FALSE(buf);
     EXPECT_TRUE(!buf);
     EXPECT_EQ(0U, buf.size());
@@ -33,22 +34,23 @@ TEST_F(ut_buffer, default) {
 }
 
 TEST_F(ut_buffer, invalid) {
-    miu::shm::buffer invalid { "0123456789abcdef", 4096 };
+    buffer invalid { "0123456789abcdef", 4096 };
     EXPECT_FALSE(invalid);
     EXPECT_EQ(0U, invalid.size());
     EXPECT_EQ(mode::MAX, invalid.mode());
 
-    miu::shm::buffer empty { "", 4096 };
+    buffer empty { "", 4096 };
     EXPECT_FALSE(empty);
     EXPECT_EQ(0U, empty.size());
     EXPECT_EQ(mode::MAX, empty.mode());
 }
 
 TEST_F(ut_buffer, make) {
-    miu::shm::buffer buf { "ut_buffer", 4095 };
+    buffer buf { "ut_buffer", 4095 };
     EXPECT_EQ(4096U, buf.size());    // aliged to page size
     EXPECT_EQ("ut_buffer", buf.name());
     EXPECT_NE(nullptr, buf.data());
+    EXPECT_EQ(buf.data(), const_cast<buffer const&>(buf).data());
     EXPECT_EQ(mode::RDWR, buf.mode());
 
     EXPECT_TRUE(buf);
@@ -62,23 +64,23 @@ TEST_F(ut_buffer, make) {
 }
 
 TEST_F(ut_buffer, shrink) {
-    { miu::shm::buffer buf { "ut_buffer", 8192 }; }
+    { buffer buf { "ut_buffer", 8192 }; }
 
-    miu::shm::buffer buf { "ut_buffer", 4096 };
+    buffer buf { "ut_buffer", 4096 };
     EXPECT_EQ(8192U, buf.size());
 }
 
 TEST_F(ut_buffer, extend) {
-    { miu::shm::buffer buf { "ut_buffer", 4096 }; }
+    { buffer buf { "ut_buffer", 4096 }; }
 
-    miu::shm::buffer buf { "ut_buffer", 8192 };
+    buffer buf { "ut_buffer", 8192 };
     EXPECT_EQ(8192U, buf.size());
 }
 
 TEST_F(ut_buffer, open_read) {
-    { miu::shm::buffer buf { "ut_buffer", 4096 }; }
+    { buffer buf { "ut_buffer", 4096 }; }
 
-    miu::shm::buffer buf { "ut_buffer", mode::READ };
+    buffer buf { "ut_buffer", mode::READ };
     EXPECT_TRUE(buf);
     EXPECT_EQ(4096U, buf.size());
     EXPECT_EQ("ut_buffer", buf.name());
@@ -86,9 +88,9 @@ TEST_F(ut_buffer, open_read) {
 }
 
 TEST_F(ut_buffer, open_rdwr) {
-    { miu::shm::buffer buf { "ut_buffer", 4096 }; }
+    { buffer buf { "ut_buffer", 4096 }; }
 
-    miu::shm::buffer buf { "ut_buffer", mode::RDWR };
+    buffer buf { "ut_buffer", mode::RDWR };
     EXPECT_TRUE(buf);
     EXPECT_EQ(4096U, buf.size());
     EXPECT_EQ("ut_buffer", buf.name());
@@ -96,8 +98,8 @@ TEST_F(ut_buffer, open_rdwr) {
 }
 
 TEST_F(ut_buffer, open_failed) {
-    EXPECT_FALSE(miu::shm::buffer("ut_buffer", mode::READ));
-    EXPECT_FALSE(miu::shm::buffer("ut_buffer", mode::RDWR));
+    EXPECT_FALSE(buffer("ut_buffer", mode::READ));
+    EXPECT_FALSE(buffer("ut_buffer", mode::RDWR));
 }
 
 TEST_F(ut_buffer, open_0) {
@@ -106,27 +108,27 @@ TEST_F(ut_buffer, open_0) {
     ss.close();
     EXPECT_TRUE(tempfs::exists("ut_buffer"));
 
-    EXPECT_FALSE(miu::shm::buffer("ut_buffer", mode::READ));
-    EXPECT_FALSE(miu::shm::buffer("ut_buffer", mode::RDWR));
+    EXPECT_FALSE(buffer("ut_buffer", mode::READ));
+    EXPECT_FALSE(buffer("ut_buffer", mode::RDWR));
 }
 
 TEST_F(ut_buffer, duplicated) {
     {    // create -> open
-        miu::shm::buffer buf { "ut_buffer", 4096 };
+        buffer buf { "ut_buffer", 4096 };
         EXPECT_TRUE(buf);
-        EXPECT_FALSE(miu::shm::buffer("ut_buffer", mode::RDWR));
+        EXPECT_FALSE(buffer("ut_buffer", mode::RDWR));
     }
     {    // open -> create
-        miu::shm::buffer buf { "ut_buffer", mode::RDWR };
+        buffer buf { "ut_buffer", mode::RDWR };
         EXPECT_TRUE(buf);
-        EXPECT_FALSE(miu::shm::buffer("ut_buffer", 4096));
+        EXPECT_FALSE(buffer("ut_buffer", 4096));
     }
 }
 
 TEST_F(ut_buffer, move) {
-    miu::shm::buffer buf1 { "ut_buffer", 4096 };
+    buffer buf1 { "ut_buffer", 4096 };
 
-    miu::shm::buffer buf2 { std::move(buf1) };
+    buffer buf2 { std::move(buf1) };
     EXPECT_TRUE(buf2);
     EXPECT_EQ(4096U, buf2.size());
     EXPECT_EQ(mode::RDWR, buf2.mode());
@@ -135,7 +137,7 @@ TEST_F(ut_buffer, move) {
     EXPECT_EQ(0U, buf1.size());
     EXPECT_EQ(mode::MAX, buf1.mode());
 
-    miu::shm::buffer buf3;
+    buffer buf3;
     buf3 = std::move(buf2);
     EXPECT_TRUE(buf3);
     EXPECT_EQ(4096U, buf3.size());
@@ -147,7 +149,7 @@ TEST_F(ut_buffer, move) {
 }
 
 TEST_F(ut_buffer, resize) {
-    miu::shm::buffer buf { "ut_buffer", 8192 };
+    buffer buf { "ut_buffer", 8192 };
     auto old_addr = buf.data();
 
     buf.resize(4096);
@@ -160,27 +162,27 @@ TEST_F(ut_buffer, resize) {
 }
 
 TEST_F(ut_buffer, resize_rdwr) {
-    miu::shm::buffer { "ut_buffer", 8192 };    // create
+    buffer { "ut_buffer", 8192 };    // create
 
     // open read-write and resize
-    miu::shm::buffer buf { "ut_buffer", mode::RDWR };
+    buffer buf { "ut_buffer", mode::RDWR };
     buf.resize(12288);
     EXPECT_EQ(12288U, buf.size());
 }
 
 TEST_F(ut_buffer, resize_read) {
-    miu::shm::buffer { "ut_buffer", 8192 };    // create
+    buffer { "ut_buffer", 8192 };    // create
 
     // cann't reisze read-only
-    miu::shm::buffer buf { "ut_buffer", mode::READ };
+    buffer buf { "ut_buffer", mode::READ };
     EXPECT_FALSE(buf.resize(12288));
     EXPECT_EQ(8192U, buf.size());
 }
 
 TEST_F(ut_buffer, audit) {
-    { miu::shm::buffer { "ut_buffer", 8192 }; }
-    { miu::shm::buffer { "ut_buffer", mode::READ }; }    // no audit for read only
-    { miu::shm::buffer { "ut_buffer", mode::RDWR }; }
+    { buffer { "ut_buffer", 8192 }; }
+    { buffer { "ut_buffer", mode::READ }; }    // no audit for read only
+    { buffer { "ut_buffer", mode::RDWR }; }
 
     auto impl = miu::shm::buffer_impl::open("ut_buffer", mode::RDWR);
     EXPECT_EQ(5U, impl->audit_size());
