@@ -24,6 +24,7 @@ class buffer {
 
     auto mode() const { return _mode; }
     auto size() const { return _size; }
+    const char* data() const;
     char* data();
 
     bool resize(uint32_t);
