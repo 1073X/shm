@@ -17,11 +17,11 @@ using miu::shm::tempfs;
 struct ut_buffer : public testing::Test {
     void SetUp() override {
         using miu::log::severity;
-        // miu::log::log::instance()->reset(severity::DEBUG, 1024);
+        miu::log::reset(severity::DEBUG, 1024);
     }
     void TearDown() override {
         tempfs::remove("ut_buffer");
-        // miu::log::log::instance()->dump();
+        miu::log::dump();
     }
 };
 
@@ -64,7 +64,7 @@ TEST_F(ut_buffer, make) {
 }
 
 TEST_F(ut_buffer, shrink) {
-    { buffer buf { "ut_buffer", 8192 }; }
+    buffer { "ut_buffer", 8192 };
 
     buffer buf { "ut_buffer", 4096 };
     EXPECT_EQ(8192U, buf.size());
@@ -116,36 +116,13 @@ TEST_F(ut_buffer, duplicated) {
     {    // create -> open
         buffer buf { "ut_buffer", 4096 };
         EXPECT_TRUE(buf);
-        EXPECT_FALSE(buffer("ut_buffer", mode::RDWR));
+        EXPECT_EQ(buf.data(), buffer("ut_buffer", mode::RDWR).data());
     }
     {    // open -> create
         buffer buf { "ut_buffer", mode::RDWR };
         EXPECT_TRUE(buf);
-        EXPECT_FALSE(buffer("ut_buffer", 4096));
+        EXPECT_EQ(buf.data(), buffer("ut_buffer", 4096).data());
     }
-}
-
-TEST_F(ut_buffer, move) {
-    buffer buf1 { "ut_buffer", 4096 };
-
-    buffer buf2 { std::move(buf1) };
-    EXPECT_TRUE(buf2);
-    EXPECT_EQ(4096U, buf2.size());
-    EXPECT_EQ(mode::RDWR, buf2.mode());
-
-    EXPECT_FALSE(buf1);    // NOLINT: testing move
-    EXPECT_EQ(0U, buf1.size());
-    EXPECT_EQ(mode::MAX, buf1.mode());
-
-    buffer buf3;
-    buf3 = std::move(buf2);
-    EXPECT_TRUE(buf3);
-    EXPECT_EQ(4096U, buf3.size());
-    EXPECT_EQ(mode::RDWR, buf3.mode());
-
-    EXPECT_FALSE(buf2);    // NOLINT: testing move
-    EXPECT_EQ(0U, buf2.size());
-    EXPECT_EQ(mode::MAX, buf2.mode());
 }
 
 TEST_F(ut_buffer, resize) {

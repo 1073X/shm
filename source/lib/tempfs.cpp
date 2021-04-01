@@ -3,7 +3,7 @@
 
 #include <com/fatal_error.hpp>
 
-#include "roster.hpp"
+#include "factory.hpp"
 
 namespace miu::shm {
 
@@ -13,7 +13,7 @@ std::filesystem::path tempfs::root() {
 
 void tempfs::do_remove(std::filesystem::path path) {
     auto name = path.filename().string();
-    if (roster::instance()->contains(name)) {
+    if (g_impl_factory.contains(name)) {
         FATAL_ERROR<std::logic_error>("shm file is still in use");
     }
     std::filesystem::remove(path);

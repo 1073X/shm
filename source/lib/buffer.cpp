@@ -5,7 +5,7 @@
 #include <log/log.hpp>
 
 #include "buffer_impl.hpp"
-#include "roster.hpp"
+#include "factory.hpp"
 
 namespace miu::shm {
 
@@ -14,50 +14,29 @@ buffer::buffer(com::strcat const& name_cat, uint32_t size) noexcept
     assert(size > 0 && "why do you want to create a 0 shm buffer?");
 
     auto name = name_cat.str();
-    if (roster::instance()->try_insert(name)) {
-        _impl = buffer_impl::make(name, size);
-        if (!_impl) {
-            roster::instance()->erase(name);
-        } else {
-            _size = _impl->size();
-            _mode = mode::RDWR;
-        }
+    _impl     = g_impl_factory.create(name, [&]() { return buffer_impl::make(name, size); });
+    if (_impl) {
+        _size = _impl->size();
+        _mode = mode::RDWR;
+    } else {
+        g_impl_factory.destory(name);
     }
 }
 
 buffer::buffer(com::strcat const& name_cat, enum mode mode) noexcept
     : buffer() {
     auto name = name_cat.str();
-    if (roster::instance()->try_insert(name)) {
-        _impl = buffer_impl::open(name, mode);
-        if (!_impl) {
-            roster::instance()->erase(name);
-        } else {
-            _size = _impl->size();
-            _mode = mode;
-        }
+    _impl     = g_impl_factory.create(name, [&]() { return buffer_impl::open(name, mode); });
+    if (_impl) {
+        _size = _impl->size();
+        _mode = mode;
+    } else {
+        g_impl_factory.destory(name);
     }
 }
 
-buffer::buffer(buffer&& another)
-    : _impl(another._impl)
-    , _size(another._size)
-    , _mode(another._mode) {
-    another._impl = nullptr;
-    another._size = 0;
-    another._mode = mode::MAX;
-}
-
-buffer& buffer::operator=(buffer&& another) {
-    std::swap(_impl, another._impl);
-    std::swap(_size, another._size);
-    std::swap(_mode, another._mode);
-    return *this;
-}
-
 buffer::~buffer() {
-    if (_impl) {
-        roster::instance()->erase(name());    // erase anyway
+    if (_impl && g_impl_factory.destory(name())) {
         buffer_impl::close(_impl, _mode);
     }
 }
