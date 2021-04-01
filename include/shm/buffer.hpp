@@ -8,13 +8,11 @@ namespace miu::shm {
 
 class buffer_impl;
 
-class buffer {
+class buffer final {
   public:
     buffer() = default;
     buffer(com::strcat const&, uint32_t) noexcept;     // create or resize
     buffer(com::strcat const&, enum mode) noexcept;    // open read-only or read-write
-    buffer(buffer&&);
-    buffer& operator=(buffer&&);
     ~buffer();
 
     bool operator!() const;
