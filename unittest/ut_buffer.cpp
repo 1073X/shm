@@ -34,7 +34,7 @@ TEST_F(ut_buffer, default) {
 }
 
 TEST_F(ut_buffer, invalid) {
-    buffer invalid { "0123456789abcdef", 4096 };
+    buffer invalid { std::string(32, 'a'), 4096 };
     EXPECT_FALSE(invalid);
     EXPECT_EQ(0U, invalid.size());
     EXPECT_EQ(mode::MAX, invalid.mode());

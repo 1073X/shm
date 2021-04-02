@@ -32,11 +32,11 @@ class buffer_impl {
     auto padding() const { return _padding; }
 
   private:
-    char _name[16];
+    char _name[32];
     uint32_t _size;
     uint32_t _offset;
     uint32_t _audit_size;
-    uint32_t _padding[9];
+    uint32_t _padding[5];
     audit _audits[];
 };
 static_assert(CACHE_LINE == sizeof(buffer_impl));
