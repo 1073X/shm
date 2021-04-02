@@ -9,30 +9,57 @@
 
 namespace miu::shm {
 
+namespace details {
+    template<typename CB>
+    static auto create(std::string const& name, CB const& ctor) {
+        auto impl = g_impl_factory.create(name, ctor);
+        if (!impl) {
+            g_impl_factory.destory(name);
+        }
+        return impl;
+    }
+}    // namespace details
+
 buffer::buffer(com::strcat const& name_cat, uint32_t size) noexcept
     : buffer() {
     assert(size > 0 && "why do you want to create a 0 shm buffer?");
 
     auto name = name_cat.str();
-    _impl     = g_impl_factory.create(name, [&]() { return buffer_impl::make(name, size); });
+
+    _impl = details::create(name, [&]() { return buffer_impl::make(name, size); });
     if (_impl) {
         _size = _impl->size();
         _mode = mode::RDWR;
-    } else {
-        g_impl_factory.destory(name);
     }
 }
 
 buffer::buffer(com::strcat const& name_cat, enum mode mode) noexcept
     : buffer() {
     auto name = name_cat.str();
-    _impl     = g_impl_factory.create(name, [&]() { return buffer_impl::open(name, mode); });
+
+    _impl = details::create(name, [&]() { return buffer_impl::open(name, mode); });
     if (_impl) {
         _size = _impl->size();
         _mode = mode;
-    } else {
-        g_impl_factory.destory(name);
     }
+}
+
+buffer::buffer(buffer const& another) noexcept {
+    operator=(another);
+}
+
+buffer& buffer::operator=(buffer const& another) noexcept {
+    if (another) {
+        auto name = another.name();
+        auto mode = another.mode();
+
+        _impl = details::create(name, [&]() { return buffer_impl::open(name, mode); });
+        if (_impl) {
+            _size = _impl->size();
+            _mode = mode;
+        }
+    }
+    return *this;
 }
 
 buffer::~buffer() {

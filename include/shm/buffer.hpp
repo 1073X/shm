@@ -13,6 +13,8 @@ class buffer final {
     buffer() = default;
     buffer(com::strcat const&, uint32_t) noexcept;     // create or resize
     buffer(com::strcat const&, enum mode) noexcept;    // open read-only or read-write
+    buffer(buffer const&) noexcept;
+    buffer& operator=(buffer const&) noexcept;
     ~buffer();
 
     bool operator!() const;
