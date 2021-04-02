@@ -125,6 +125,22 @@ TEST_F(ut_buffer, duplicated) {
     }
 }
 
+TEST_F(ut_buffer, copy) {
+    buffer buf;
+
+    // copy null
+    auto buf2 = buf;
+    EXPECT_FALSE(buf2);
+
+    {
+        buffer buf2 { "ut_buffer", 4096 };
+        EXPECT_EQ(4096U, buf2.size());
+        buf = buf2;
+    }
+    EXPECT_TRUE(buf);
+    EXPECT_EQ(4096U, buf.size());
+}
+
 TEST_F(ut_buffer, resize) {
     buffer buf { "ut_buffer", 8192 };
     auto old_addr = buf.data();
