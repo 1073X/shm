@@ -3,6 +3,7 @@
 #include <com/fatal_error.hpp>
 #include <com/strcat.hpp>
 #include <filesystem>
+#include <vector>
 
 namespace miu::shm {
 
@@ -33,6 +34,8 @@ class tempfs {
     static auto remove(ARGS&&... args) {
         return do_remove(join(std::forward<ARGS>(args)...));
     }
+
+    static std::vector<std::filesystem::path> find(std::string_view filter);
 
   private:
     static void do_remove(std::filesystem::path);
