@@ -22,3 +22,23 @@ TEST(ut_tempfs, exists_and_remove) {
     EXPECT_NO_THROW(tempfs::remove("ut_tempfs"));
     EXPECT_FALSE(tempfs::exists("ut_tempfs"));
 }
+
+TEST(ut_tempfs, find_files) {
+    std::ofstream { tempfs::join("c", "txt") };
+    std::ofstream { tempfs::join("a", "txt") };
+    std::ofstream { tempfs::join("b", "txt") };
+    std::ofstream { tempfs::join("d", "csv") };
+
+    auto files = tempfs::find(".*\\.txt");
+    EXPECT_EQ(3, files.size());
+    EXPECT_EQ(tempfs::join("a.txt"), files[0]);
+    EXPECT_EQ(tempfs::join("b.txt"), files[1]);
+    EXPECT_EQ(tempfs::join("c.txt"), files[2]);
+
+    EXPECT_EQ(0U, tempfs::find("not_exists").size());
+
+    tempfs::remove("a", "txt");
+    tempfs::remove("b", "txt");
+    tempfs::remove("c", "txt");
+    tempfs::remove("d", "csv");
+}
