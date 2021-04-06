@@ -188,3 +188,9 @@ TEST_F(ut_buffer, audit) {
 
     miu::shm::buffer_impl::close(impl, mode::RDWR);
 }
+
+TEST_F(ut_buffer, close) {
+    buffer buf { "ut_buffer", 8192 };
+    buf.close();
+    EXPECT_FALSE(buf);
+}
