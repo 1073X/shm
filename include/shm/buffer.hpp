@@ -29,6 +29,8 @@ class buffer final {
 
     bool resize(uint32_t);
 
+    void close();
+
   private:
     buffer_impl* _impl { nullptr };
     uint32_t _size { 0 };

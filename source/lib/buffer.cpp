@@ -63,9 +63,14 @@ buffer& buffer::operator=(buffer const& another) noexcept {
 }
 
 buffer::~buffer() {
+    close();
+}
+
+void buffer::close() {
     if (_impl && g_impl_factory.destory(name())) {
         buffer_impl::close(_impl, _mode);
     }
+    _impl = nullptr;
 }
 
 bool buffer::operator!() const {
